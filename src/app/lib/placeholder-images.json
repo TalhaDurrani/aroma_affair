@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-bg",
+      "description": "Elegant luxury perfume bottle on a dark marble surface with soft golden lighting.",
+      "imageUrl": "https://picsum.photos/seed/aroma-hero/1920/1080",
+      "imageHint": "luxury perfume"
+    },
+    {
+      "id": "perfume-1",
+      "description": "Minimalist tall glass perfume bottle with gold cap.",
+      "imageUrl": "https://picsum.photos/seed/perfume1/600/800",
+      "imageHint": "perfume bottle"
+    },
+    {
+      "id": "perfume-2",
+      "description": "Square amber perfume bottle with black label.",
+      "imageUrl": "https://picsum.photos/seed/perfume2/600/800",
+      "imageHint": "fragrance bottle"
+    },
+    {
+      "id": "perfume-3",
+      "description": "Round crystal perfume bottle with intricate gold details.",
+      "imageUrl": "https://picsum.photos/seed/perfume3/600/800",
+      "imageHint": "luxury fragrance"
+    },
+    {
+      "id": "brand-story",
+      "description": "Close up of luxury fragrance ingredients: dried jasmine and cedar wood.",
+      "imageUrl": "https://picsum.photos/seed/ingredients/800/600",
+      "imageHint": "perfume ingredients"
+    }
+  ]
+}
