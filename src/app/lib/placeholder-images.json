@@ -30,6 +30,30 @@
       "description": "Close up of luxury fragrance ingredients: dried jasmine and cedar wood.",
       "imageUrl": "https://picsum.photos/seed/ingredients/800/600",
       "imageHint": "perfume ingredients"
+    },
+    {
+      "id": "ingredient-exploration",
+      "description": "Artistic shot of raw sandalwood and vanilla pods.",
+      "imageUrl": "https://picsum.photos/seed/raw-materials/1200/800",
+      "imageHint": "fragrance ingredients"
+    },
+    {
+      "id": "concierge-service",
+      "description": "A high-end boutique interior with velvet chairs and gold accents.",
+      "imageUrl": "https://picsum.photos/seed/boutique/1200/800",
+      "imageHint": "luxury boutique"
+    },
+    {
+      "id": "artisan-craft",
+      "description": "Close up of hands delicately finishing a glass bottle with gold leaf.",
+      "imageUrl": "https://picsum.photos/seed/artisan/800/1000",
+      "imageHint": "craftsmanship"
+    },
+    {
+      "id": "heritage-portrait",
+      "description": "Vintage black and white photo of a master perfumer in a 1920s laboratory.",
+      "imageUrl": "https://picsum.photos/seed/heritage/800/1200",
+      "imageHint": "vintage lab"
     }
   ]
 }
