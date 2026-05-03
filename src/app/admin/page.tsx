@@ -1,25 +1,27 @@
-
-"use client";
-
-import { useState } from 'react';
+// src/app/admin/page.tsx
+// REMOVED "use client" - This is now a Server Component!
 import { OrderService, ProductService } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, ShoppingBag, DollarSign, TrendingUp, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 
-export default function AdminDashboard() {
-  const orders = OrderService.getAll();
-  const products = ProductService.getAll();
+export default async function AdminDashboard() {
+  // Added 'await' because these are now fetching from Supabase
+  const orders = await OrderService.getAll();
+  const products = await ProductService.getAll();
   
   const totalRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
   const totalSales = orders.length;
   
-  const statusColors = {
+  // Updated status colors to match our new COD specific statuses
+  const statusColors: Record<string, string> = {
     pending: 'bg-yellow-500/20 text-yellow-500',
-    confirmed: 'bg-blue-500/20 text-blue-500',
+    confirmed_via_call: 'bg-blue-500/20 text-blue-500',
     shipped: 'bg-purple-500/20 text-purple-500',
     delivered: 'bg-green-500/20 text-green-500',
+    returned: 'bg-orange-500/20 text-orange-500',
     cancelled: 'bg-red-500/20 text-red-500',
   };
 
@@ -45,7 +47,7 @@ export default function AdminDashboard() {
               <DollarSign className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-headline">${totalRevenue.toLocaleString()}.00</div>
+              <div className="text-3xl font-bold font-headline">Rs. {totalRevenue.toLocaleString()}</div>
               <p className="text-[10px] text-muted-foreground mt-1 flex items-center"><TrendingUp className="w-3 h-3 mr-1 text-green-500" /> +12% from last month</p>
             </CardContent>
           </Card>
@@ -98,13 +100,14 @@ export default function AdminDashboard() {
                     <div key={order.id} className="flex items-center justify-between p-4 hover:bg-muted/30">
                       <div>
                         <p className="font-bold text-sm">{order.customerName}</p>
-                        <p className="text-xs text-muted-foreground">{order.id} • {new Date(order.createdAt).toLocaleDateString()}</p>
+                        {/* Safe check for date since some legacy mock data might not have it formatted correctly */}
+                        <p className="text-xs text-muted-foreground">{order.id} • {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 ${statusColors[order.status]}`}>
-                          {order.status}
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 ${statusColors[order.status] || 'bg-gray-500/20 text-gray-500'}`}>
+                          {order.status.replace(/_/g, ' ')}
                         </span>
-                        <p className="font-bold text-sm">${order.totalAmount}</p>
+                        <p className="font-bold text-sm">Rs. {order.totalAmount}</p>
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>
@@ -127,7 +130,9 @@ export default function AdminDashboard() {
                    <div key={product.id} className="p-4 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 relative bg-muted border">
-                           <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                           {product.images && product.images[0] && (
+                             <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                           )}
                         </div>
                         <div>
                           <p className="font-bold text-sm">{product.name}</p>
@@ -135,8 +140,12 @@ export default function AdminDashboard() {
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="font-bold text-sm">{product.variants.reduce((acc, v) => acc + v.stock, 0)} Units</p>
-                        <p className="text-[10px] text-muted-foreground uppercase">Across {product.variants.length} Sizes</p>
+                        <p className="font-bold text-sm">
+                          {product.variants ? product.variants.reduce((acc, v) => acc + (v.stock || 0), 0) : 0} Units
+                        </p>
+                        <p className="text-[10px] text-muted-foreground uppercase">
+                          Across {product.variants ? product.variants.length : 0} Sizes
+                        </p>
                      </div>
                    </div>
                  ))}

@@ -1,76 +1,119 @@
-
-import { Product, Order, Category, ProductVariant } from './types';
-import data from '@/app/lib/placeholder-images.json';
-
-const getImg = (id: string) => data.placeholderImages.find(i => i.id === id)?.imageUrl || '';
-
-let products: Product[] = [
-  {
-    id: 'p1',
-    name: 'Midnight Jasmine',
-    description: 'A seductive blend of night-blooming jasmine and warm amber, designed for those mysterious evenings.',
-    category: 'Women',
-    images: [getImg('perfume-1'), getImg('brand-story')],
-    topNotes: ['Jasmine', 'Neroli'],
-    middleNotes: ['Gardenia', 'Ylang-Ylang'],
-    baseNotes: ['Amber', 'White Musk'],
-    createdAt: new Date().toISOString(),
-    variants: [
-      { id: 'v1-1', productId: 'p1', size: '30ml', price: 85, stock: 15 },
-      { id: 'v1-2', productId: 'p1', size: '50ml', price: 125, stock: 10 },
-      { id: 'v1-3', productId: 'p1', size: '100ml', price: 195, stock: 5 },
-    ]
-  },
-  {
-    id: 'p2',
-    name: 'Oud Imperial',
-    description: 'The pinnacle of luxury. Rare oud wood harvested from ancient forests, balanced with spices and leather.',
-    category: 'Unisex',
-    images: [getImg('perfume-2')],
-    topNotes: ['Saffron', 'Nutmeg'],
-    middleNotes: ['Oud', 'Rose'],
-    baseNotes: ['Leather', 'Vanilla', 'Sandalwood'],
-    createdAt: new Date().toISOString(),
-    variants: [
-      { id: 'v2-1', productId: 'p2', size: '50ml', price: 210, stock: 8 },
-      { id: 'v2-2', productId: 'p2', size: '100ml', price: 340, stock: 3 },
-    ]
-  },
-  {
-    id: 'p3',
-    name: 'Coastal Breeze',
-    description: 'Fresh, vibrant, and invigorating. Captures the essence of the Mediterranean shore at dawn.',
-    category: 'Men',
-    images: [getImg('perfume-3')],
-    topNotes: ['Bergamot', 'Lemon'],
-    middleNotes: ['Sea Salt', 'Sage'],
-    baseNotes: ['Driftwood', 'Vetiver'],
-    createdAt: new Date().toISOString(),
-    variants: [
-      { id: 'v3-1', productId: 'p3', size: '50ml', price: 95, stock: 20 },
-      { id: 'v3-2', productId: 'p3', size: '100ml', price: 145, stock: 12 },
-    ]
-  }
-];
-
-let orders: Order[] = [];
+// src/lib/store.ts
+import { supabase } from './supabase';
+import { Product, Order, Category } from './types';
 
 export const ProductService = {
-  getAll: () => products,
-  getById: (id: string) => products.find(p => p.id === id),
-  getByCategory: (cat: Category) => products.filter(p => p.category === cat),
-  create: (p: Product) => { products.push(p); return p; },
-  update: (id: string, updates: Partial<Product>) => {
-    products = products.map(p => p.id === id ? { ...p, ...updates } : p);
+  // Fetch all products with their variants
+  getAll: async (): Promise<Product[]> => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, variants:product_variants(*)');
+    
+    if (error) {
+      console.error("Error fetching products:", error);
+      return [];
+    }
+    return data as unknown as Product[];
   },
-  delete: (id: string) => { products = products.filter(p => p.id !== id); }
+
+  // Fetch a single product by ID
+  getById: async (id: string): Promise<Product | null> => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, variants:product_variants(*)')
+      .eq('id', id)
+      .single();
+      
+    if (error) {
+      console.error("Error fetching product:", error);
+      return null;
+    }
+    return data as unknown as Product;
+  },
+
+  // Fetch products by category
+  getByCategory: async (cat: Category): Promise<Product[]> => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, variants:product_variants(*)')
+      .eq('category', cat);
+      
+    if (error) {
+      console.error("Error fetching category:", error);
+      return [];
+    }
+    return data as unknown as Product[];
+  }
 };
 
+// Replace ONLY the OrderService part in src/lib/store.ts with this:
+
 export const OrderService = {
-  getAll: () => orders,
-  getById: (id: string) => orders.find(o => o.id === id),
-  create: (o: Order) => { orders.unshift(o); return o; },
-  updateStatus: (id: string, status: Order.status) => {
-    orders = orders.map(o => o.id === id ? { ...o, status } : o);
+  // Create a new order (Guest or Logged in)
+  create: async (order: Order) => {
+    const { error: orderError } = await supabase
+      .from('orders')
+      .insert([{
+        id: order.id,
+        user_id: order.user_id || null,
+        customerName: order.customerName,
+        email: order.email,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        notes: order.notes,
+        giftWrap: order.giftWrap,
+        giftMessage: order.giftMessage,
+        subtotal: order.subtotal,
+        delivery_fee: order.delivery_fee,
+        totalAmount: order.totalAmount,
+        payment_method: order.payment_method,
+        status: order.status
+      }]);
+
+    if (orderError) throw orderError;
+
+    if (order.items && order.items.length > 0) {
+      const itemsToInsert = order.items.map(item => ({
+        orderId: order.id,
+        productId: item.productId,
+        variantId: item.variantId,
+        name: item.name,
+        variantSize: item.variantSize,
+        quantity: item.quantity,
+        price_at_purchase: item.price_at_purchase
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+    }
+
+    return order;
+  },
+
+  // ADDED: Fetch all orders for the admin dashboard
+  getAll: async (): Promise<Order[]> => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, items:order_items(*)');
+      
+    if (error) {
+      console.error("Error fetching orders:", error);
+      return [];
+    }
+    return data as unknown as Order[];
+  },
+
+  // ADDED: Update order status (e.g., pending -> confirmed_via_call)
+  updateStatus: async (id: string, status: string) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', id);
+      
+    if (error) throw error;
   }
 };
