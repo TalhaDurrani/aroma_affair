@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import { Product, Order, Category } from './types';
 
 export const ProductService = {
-  // Fetch all products with their variants
+  // Fetch all products with their variants attached
   getAll: async (): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
@@ -31,7 +31,7 @@ export const ProductService = {
     return data as unknown as Product;
   },
 
-  // Fetch products by category
+  // Fetch products filtered by category
   getByCategory: async (cat: Category): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
@@ -46,11 +46,10 @@ export const ProductService = {
   }
 };
 
-// Replace ONLY the OrderService part in src/lib/store.ts with this:
-
 export const OrderService = {
-  // Create a new order (Guest or Logged in)
+  // Save a new order to the database
   create: async (order: Order) => {
+    // 1. Insert the main order
     const { error: orderError } = await supabase
       .from('orders')
       .insert([{
@@ -66,13 +65,16 @@ export const OrderService = {
         giftMessage: order.giftMessage,
         subtotal: order.subtotal,
         delivery_fee: order.delivery_fee,
+        discount_amount: order.discount_amount || 0,
         totalAmount: order.totalAmount,
+        coupon_code: order.coupon_code || null,
         payment_method: order.payment_method,
         status: order.status
       }]);
 
     if (orderError) throw orderError;
 
+    // 2. Insert the associated items for the order
     if (order.items && order.items.length > 0) {
       const itemsToInsert = order.items.map(item => ({
         orderId: order.id,
@@ -81,7 +83,7 @@ export const OrderService = {
         name: item.name,
         variantSize: item.variantSize,
         quantity: item.quantity,
-        price_at_purchase: item.price_at_purchase
+        price_at_purchase: item.price_at_purchase 
       }));
 
       const { error: itemsError } = await supabase
@@ -94,7 +96,7 @@ export const OrderService = {
     return order;
   },
 
-  // ADDED: Fetch all orders for the admin dashboard
+  // Fetch all orders for the admin dashboard
   getAll: async (): Promise<Order[]> => {
     const { data, error } = await supabase
       .from('orders')
@@ -107,7 +109,7 @@ export const OrderService = {
     return data as unknown as Order[];
   },
 
-  // ADDED: Update order status (e.g., pending -> confirmed_via_call)
+  // Update order status (Admin panel)
   updateStatus: async (id: string, status: string) => {
     const { error } = await supabase
       .from('orders')

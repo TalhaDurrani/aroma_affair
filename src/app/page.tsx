@@ -1,16 +1,15 @@
-// src/app/page.tsx
-// Notice: NO "use client" here! This is a Server Component.
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { ProductService } from '@/lib/store';
-import { Minus, Globe, Award, Sparkles, Quote } from 'lucide-react';
+import { ArrowRight, Minus, Quote, Globe, Award, Sparkles } from 'lucide-react';
 import data from '@/app/lib/placeholder-images.json';
 
+// NO "use client" - This is a Server Component!
 export default async function HomePage() {
-  // Fetch data directly on the server before the page loads!
-  const products = await ProductService.getAll(); 
+  // Added await!
+  const products = await ProductService.getAll();
   const heroImg = data.placeholderImages.find(i => i.id === 'hero-bg')?.imageUrl || '';
 
   return (
@@ -51,6 +50,30 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Trust Bar */}
+      <section className="py-12 border-y border-primary/10 bg-card">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
+            <div className="flex flex-col items-center gap-2">
+              <Globe className="w-5 h-5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Global Concierge</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Award className="w-5 h-5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Grasse Certified</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Hand-Finished</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Award className="w-5 h-5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Fragrance of Year '24</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Editorial Product Showcase */}
       <section className="py-32 bg-background overflow-hidden">
         <div className="container mx-auto px-6">
@@ -60,6 +83,7 @@ export default async function HomePage() {
               <span className="text-[10px] font-bold tracking-ultra uppercase text-primary">Curated Series</span>
             </div>
             <h3 className="text-5xl md:text-7xl font-headline font-bold mb-8 leading-tight">The Art of <br /> Olfactory Selection</h3>
+            <p className="text-muted-foreground text-lg italic">Distilled from the world's rarest resins and absolutes.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-4 items-start">
@@ -72,6 +96,7 @@ export default async function HomePage() {
                     fill
                     className="object-cover card-image transition-transform duration-1000"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500"></div>
                 </Link>
                 <div className="flex justify-between items-end">
                   <div>
@@ -81,7 +106,28 @@ export default async function HomePage() {
                 </div>
               </div>
             )}
-            {/* The rest of your components... */}
+
+            <div className="md:col-span-5 md:pt-40 space-y-24">
+              {products.slice(1, 3).map((product, idx) => (
+                <div key={product.id} className={`${idx % 2 !== 0 ? 'md:pl-20' : ''} space-y-6`}>
+                  <Link href={`/product/${product.id}`} className="group editorial-card block aspect-[3/4] bg-muted relative">
+                    <Image 
+                      src={product.images[0]} 
+                      alt={product.name}
+                      fill
+                      className="object-cover card-image transition-transform duration-1000"
+                    />
+                  </Link>
+                  <div>
+                    <span className="text-[10px] uppercase tracking-widest text-primary font-bold">{product.category}</span>
+                    <h4 className="text-2xl font-headline font-bold">{product.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-2 uppercase tracking-widest">
+                      From Rs. {product.variants?.length ? Math.min(...product.variants.map(v => v.price)) : 0}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

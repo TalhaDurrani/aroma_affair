@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -14,19 +13,14 @@ import { OrderService } from '@/lib/store';
 import { Order } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total, clearCart, isLoaded } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    city: '',
-    notes: '',
-    giftWrap: false,
-    giftMessage: '',
+    name: '', email: '', phone: '', address: '', city: '', notes: '', giftWrap: false, giftMessage: '',
   });
 
   if (!isLoaded) return null;
@@ -35,46 +29,51 @@ export default function CheckoutPage() {
     return null;
   }
 
-  const finalTotal = total + (formData.giftWrap ? 10 : 0);
+  const deliveryFee = 200; 
+  const giftWrapFee = formData.giftWrap ? 500 : 0; 
+  const finalTotal = total + deliveryFee + giftWrapFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      const orderId = `ORD-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
       const order: Order = {
-        id: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        id: orderId,
         customerName: formData.name,
+        email: formData.email,
         phone: formData.phone,
         address: formData.address,
         city: formData.city,
         notes: formData.notes,
         giftWrap: formData.giftWrap,
         giftMessage: formData.giftMessage,
+        subtotal: total,
+        delivery_fee: deliveryFee,
         totalAmount: finalTotal,
+        payment_method: 'COD',
         status: 'pending',
-        createdAt: new Date().toISOString(),
         items: cart.map(item => ({
-          id: Math.random().toString(36).substr(2, 9),
-          orderId: '', // set by service usually
+          id: '', 
+          orderId: orderId,
           productId: item.productId,
           variantId: item.variantId,
           name: item.name,
           variantSize: item.size,
           quantity: item.quantity,
-          price: item.price
+          price_at_purchase: item.price
         }))
       };
 
-      OrderService.create(order);
+      // ADDED AWAIT HERE!
+      await OrderService.create(order);
       clearCart();
       router.push(`/order-confirmation/${order.id}`);
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to place order. Please try again.'
-      });
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to place order. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -83,9 +82,8 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-16 mt-12">
         <h2 className="text-4xl font-headline font-bold mb-12 text-center">Checkout</h2>
-        
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="space-y-10">
             <section className="space-y-6">
@@ -97,8 +95,12 @@ export default function CheckoutPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-[10px] uppercase font-bold tracking-widest">Phone Number</Label>
-                  <Input id="phone" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="rounded-none h-12" />
+                  <Input id="phone" required placeholder="03XX-XXXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="rounded-none h-12" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[10px] uppercase font-bold tracking-widest">Email Address</Label>
+                <Input id="email" type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="rounded-none h-12" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address" className="text-[10px] uppercase font-bold tracking-widest">Full Address</Label>
@@ -108,75 +110,29 @@ export default function CheckoutPage() {
                 <Label htmlFor="city" className="text-[10px] uppercase font-bold tracking-widest">City</Label>
                 <Input id="city" required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="rounded-none h-12" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-[10px] uppercase font-bold tracking-widest">Delivery Notes (Optional)</Label>
-                <Textarea id="notes" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="rounded-none" />
-              </div>
-            </section>
-
-            <section className="space-y-6 p-6 bg-secondary/20 border">
-              <h3 className="text-xl font-headline font-bold">Personalization</h3>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="giftWrap" checked={formData.giftWrap} onCheckedChange={(val: boolean) => setFormData({...formData, giftWrap: val})} />
-                <Label htmlFor="giftWrap" className="text-sm font-medium">Add Luxury Gift Wrapping (+$10.00)</Label>
-              </div>
-              {formData.giftWrap && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                  <Label htmlFor="giftMessage" className="text-[10px] uppercase font-bold tracking-widest">Gift Message</Label>
-                  <Textarea id="giftMessage" placeholder="Type your personal message here..." value={formData.giftMessage} onChange={e => setFormData({...formData, giftMessage: e.target.value})} className="rounded-none" />
-                </div>
-              )}
             </section>
           </div>
 
           <div className="space-y-8">
             <Card className="rounded-none border-2 border-primary/20">
-              <CardHeader>
-                <CardTitle className="font-headline">Order Summary</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="font-headline">Order Summary</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   {cart.map(item => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.name} x {item.quantity} ({item.size})</span>
-                      <span className="font-bold">${item.price * item.quantity}.00</span>
+                      <span className="font-bold">Rs. {item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
-                
                 <Separator />
-                
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>${total}.00</span>
-                  </div>
-                  {formData.giftWrap && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Gift Wrapping</span>
-                      <span>$10.00</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold pt-4 border-t">
-                    <span>Total Amount</span>
-                    <span className="text-primary">${finalTotal}.00</span>
-                  </div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>Rs. {total}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Delivery Fee</span><span>Rs. {deliveryFee}</span></div>
+                  <div className="flex justify-between text-lg font-bold pt-4 border-t"><span>Total Amount</span><span className="text-primary">Rs. {finalTotal}</span></div>
                 </div>
-
-                <div className="pt-6 space-y-4">
-                  <h4 className="text-sm font-bold uppercase tracking-widest">Payment Method</h4>
-                  <div className="p-4 border border-primary/50 bg-primary/5 rounded-none flex items-center justify-between">
-                    <span className="font-bold">Cash on Delivery</span>
-                    <div className="w-4 h-4 rounded-full border-2 border-primary bg-primary" />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full h-14 rounded-none text-lg font-bold uppercase tracking-widest"
-                >
-                  {isSubmitting ? 'Processing...' : 'Place Order'}
+                <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-none text-lg font-bold uppercase tracking-widest">
+                  {isSubmitting ? 'Processing...' : 'Place Order (COD)'}
                 </Button>
               </CardContent>
             </Card>
